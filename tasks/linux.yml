@@ -1,0 +1,120 @@
+--
+# yamllint disable rule:line-length
+- name: Include OS-specific variables
+  include_vars: "{{ ansible_os_family }}.yml"
+  tags: always
+
+- name: Install dependencies
+  yum:
+    state: present
+    name:
+      - make
+      - diffutils
+
+- name: Set llvm_toolset to llvm-toolset-7.0
+  when:
+    - toolset == 'clang'
+    - ansible_os_family == 'RedHat'
+    - ansible_distribution_major_version|int == 7
+  set_fact:
+    llvm_toolset: 'llvm-toolset-7.0'
+
+- name: Set llvm_toolset to llvm-toolset
+  when:
+    - toolset == 'clang'
+    - ansible_os_family == 'RedHat'
+    - ansible_distribution_major_version|int > 7
+  set_fact:
+    llvm_toolset: 'llvm-toolset'
+
+- name: Display toolset
+  debug:
+    msg: "toolset (gcc or clang): {{ toolset }}"
+
+- name: Ensure directory exists
+  file:
+    path: /root
+    state: directory
+    owner: root
+    group: root
+    mode: 0700
+  tags:
+    - base_boost
+
+- name: Copy goss tests template
+  template:
+    src: test_boost.yml.j2
+    dest: /root/test_boost.yml
+    mode: 0644
+  tags:
+    - base_boost
+
+- name: Disable software collections on RedHat 8
+  when:
+    - ansible_os_family == 'RedHat'
+    - ansible_distribution_major_version|int > 7
+  set_fact:
+    collections_enabled: false
+
+- name: Display collections_enabled
+  debug:
+    msg: "collections_enabled: {{ collections_enabled }}"
+
+- name: set cmd_end
+  block:
+    - name: When not sourcing devtoolset enable file
+      set_fact:
+        cmd_env: "/bin/true && "
+
+    - name: Source devtoolset enable file
+      when:
+        - collections_enabled|bool
+        - ansible_os_family == 'RedHat'
+        - ansible_distribution_major_version|int < 8
+        - toolset == 'gcc'
+      set_fact:
+        cmd_env: "source /opt/rh/{{ cplusplus_devtoolset }}/enable && "
+
+    - name: Source llvm toolset enable file
+      when:
+        - collections_enabled
+        - ansible_os_family == 'RedHat'
+        - ansible_distribution_major_version|int < 8
+        - toolset == 'clang'
+      set_fact:
+        cmd_env: "source /opt/rh/{{ llvm_toolset }}/enable && "
+  when: cmd_env is undefined
+
+- name: What is my gcc compiler?
+  when: toolset == 'gcc'
+  environment:
+    PATH: '/sbin:/usr/sbin:/usr/local/sbin:/usr/local/bin:/bin:/usr/bin'
+  shell: "{{ cmd_env | default('/bin/true') }} gcc -v"
+  register: gcc_version
+  changed_when: false
+  tags:
+    - skip_ansible_lint
+
+- name: Display details about gcc version
+  when: toolset == 'gcc'
+  debug:
+    msg: "{{ gcc_version.stdout_lines }}"
+
+- name: What is my clang compiler?
+  when: toolset == 'clang'
+  environment:
+    PATH: '/sbin:/usr/sbin:/usr/local/sbin:/usr/local/bin:/bin:/usr/bin'
+  shell: "{{ cmd_env | default('/bin/true') }} clang --version"
+  register: clang_version
+  changed_when: false
+  tags:
+    - skip_ansible_lint
+
+- name: Display details about clang version
+  when: toolset == 'clang'
+  debug:
+    msg: "{{ clang_version.stdout_lines }}"
+
+- name: Display 
+  debug:
+    msg: "zlib_url: {{ zlib_url }}"
