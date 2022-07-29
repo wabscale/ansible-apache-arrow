@@ -65,7 +65,7 @@
         - ansible_distribution_major_version|int < 8
         - toolset == 'gcc'
       set_fact:
-        cmd_env: "source /opt/rh/{{ cplusplus_devtoolset }}/enable && "
+        cmd_env: "source /opt/rh/{{ cplusplus_devtoolset }}/enable && CC=gcc CXX=g++ "
 
     - name: Source llvm toolset enable file
       when:
@@ -74,7 +74,7 @@
         - ansible_distribution_major_version|int < 8
         - toolset == 'clang'
       set_fact:
-        cmd_env: "source /opt/rh/{{ llvm_toolset }}/enable && "
+        cmd_env: "source /opt/rh/{{ llvm_toolset }}/enable && CC=clang CXX=clang++ "
   when: cmd_env is undefined
 
 - name: What is my gcc compiler?
