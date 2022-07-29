@@ -1,0 +1,67 @@
+---
+
+- name: Create work directories
+  win_file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - "{{ arrow_prefix }}"
+    - "{{ arrow_workdir }}"
+
+- name: Download arrow
+  git:
+    repo: "{{ arrow_url }}"
+    dest: "{{ arrow_workdir }}/{{ arrow_dest }}"
+    version: "apache-arrow-{{ arrow_version }}"
+    clone: true
+    depth: 1
+
+- stat: "path={{ arrow_workdir }}/{{ arrow_dest }}/build"
+  register: build_path
+
+- name: Remove previous arrow cmake
+  win_shell: "cmd.exe /c DEL /F /Q /S {{ arrow_workdir }}/{{ arrow_dest }}/build"
+  when: build_path.stat.isdir
+  tags:
+    - base_arrow
+    - arrow
+    - skip_ansible_lint
+
+- name: Generate arrow cmake
+  win_shell: "cmd.exe /c cmake -B build -S {{ arrow_workdir }}/{{ arrow_dest }}/cpp -G \"{{ cmake_generator }}\" -A \"{{ cmake_arch }}\" -T \"{{ toolset }}\" {{ cmake_flags }}"
+  args:
+    chdir: "{{ arrow_workdir }}/{{ arrow_dest }}"
+  register: arrow_cmake_generate
+  tags:
+    - base_arrow
+    - arrow
+    - skip_ansible_lint
+
+- name: Build arrow cmake
+  win_shell: "cmd.exe /c cmake --build build -j{{ ansible_processor_vcpus }}"
+  args:
+    chdir: "{{ arrow_workdir }}/{{ arrow_dest }}"
+  register: arrow_cmake_build
+  tags:
+    - base_arrow
+    - arrow
+    - skip_ansible_lint
+
+- name: Install arrow cmake
+  win_shell: "cmd.exe /c cmake --install build --prefix {{ arrow_prefix }}"
+  args:
+    chdir: "{{ arrow_workdir }}/{{ arrow_dest }}"
+  register: arrow_cmake_install
+  tags:
+    - base_arrow
+    - arrow
+    - skip_ansible_lint
+
+- name: Clean arrow sources
+  shell: "rm -rf {{ arrow_workdir }}"
+  tags:
+    - base_arrow
+    - arrow
+    - skip_ansible_lint
+
+

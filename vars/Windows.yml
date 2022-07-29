@@ -1,0 +1,8 @@
+---
+# arrow_prefix used for zlib and bzip2 too
+arrow_prefix: 'C:/Local'
+arrow_workdir: 'C:/tmp/Arrow'
+
+cmake_generator: "Visual Studio 17 2022"
+cmake_arch: "x64"
+...

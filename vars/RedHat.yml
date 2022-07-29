@@ -3,9 +3,6 @@
 arrow_prefix: /usr/local
 arrow_workdir: /usr/local/src
 
-arrow_cflags: '-fPIC'
-arrow_cxxflags: '-fPIC'
-
 # Software collections offer latest versions of programming languages
 collections_enabled: false
 
