@@ -39,15 +39,7 @@
     group: root
     mode: 0700
   tags:
-    - base_boost
-
-- name: Copy goss tests template
-  template:
-    src: test_boost.yml.j2
-    dest: /root/test_boost.yml
-    mode: 0644
-  tags:
-    - base_boost
+    - base_arrow
 
 - name: Disable software collections on RedHat 8
   when:
@@ -115,6 +107,49 @@
   debug:
     msg: "{{ clang_version.stdout_lines }}"
 
-- name: Display 
-  debug:
-    msg: "zlib_url: {{ zlib_url }}"
+- name: Download arrow
+  git:
+    repo: "{{ arrow_url }}"
+    dest: "{{ arrow_workdir }}/{{ arrow_dest }}"
+    version: "apache-arrow-{{ arrow_version }}"
+    clone: true
+    depth: 1
+    single_branch: true
+
+- name: Generate arrow cmake
+  environment:
+    PATH: '/sbin:/usr/sbin:/usr/local/sbin:/usr/local/bin:/bin:/usr/bin'
+  shell: "{{ cmd_env | default('') }} cmake -B build -S {{ arrow_workdir }}/{{ arrow_dest }}/cpp -G {{ cmake_generator }} {{ cmake_flags }}"
+  args:
+    chdir: "{{ arrow_workdir }}/{{ arrow_dest }}"
+  register: arrow_cmake_generate
+  tags:
+    - base_arrow
+    - arrow
+    - skip_ansible_lint
+
+- name: Build arrow cmake
+  environment:
+    PATH: '/sbin:/usr/sbin:/usr/local/sbin:/usr/local/bin:/bin:/usr/bin'
+  shell: "{{ cmd_env | default('') }} cmake --build build"
+  args:
+    chdir: "{{ arrow_workdir }}/{{ arrow_dest }}"
+  register: arrow_cmake_build
+  tags:
+    - base_arrow
+    - arrow
+    - skip_ansible_lint
+
+- name: Install arrow cmake
+  environment:
+    PATH: '/sbin:/usr/sbin:/usr/local/sbin:/usr/local/bin:/bin:/usr/bin'
+  shell: "{{ cmd_env | default('') }} cmake --install build --prefix {{ arrow_prefix }}"
+  args:
+    chdir: "{{ arrow_workdir }}/{{ arrow_dest }}"
+  register: arrow_cmake_install
+  tags:
+    - base_arrow
+    - arrow
+    - skip_ansible_lint
+
+
