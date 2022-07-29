@@ -1,4 +1,4 @@
---
+---
 # yamllint disable rule:line-length
 - name: Include OS-specific variables
   include_vars: "{{ ansible_os_family }}.yml"
@@ -56,7 +56,7 @@
   block:
     - name: When not sourcing devtoolset enable file
       set_fact:
-        cmd_env: "/bin/true && "
+        cmd_env: "CC=gcc CXX=g++ "
 
     - name: Source devtoolset enable file
       when:
@@ -114,12 +114,22 @@
     version: "apache-arrow-{{ arrow_version }}"
     clone: true
     depth: 1
-    single_branch: true
+
+- stat: "path={{ arrow_workdir }}/{{ arrow_dest }}/build"
+  register: build_path
+
+- name: Remove previous arrow cmake
+  shell: "rm -rf {{ arrow_workdir }}/{{ arrow_dest }}/build"
+  when: build_path.stat.isdir
+  tags:
+    - base_arrow
+    - arrow
+    - skip_ansible_lint
 
 - name: Generate arrow cmake
-  environment:
-    PATH: '/sbin:/usr/sbin:/usr/local/sbin:/usr/local/bin:/bin:/usr/bin'
-  shell: "{{ cmd_env | default('') }} cmake -B build -S {{ arrow_workdir }}/{{ arrow_dest }}/cpp -G {{ cmake_generator }} {{ cmake_flags }}"
+  shell:
+    executable: /bin/bash
+    cmd: "source /etc/profile && {{ cmd_env | default('') }} cmake -B build -S {{ arrow_workdir }}/{{ arrow_dest }}/cpp -G \"{{ cmake_generator }}\" {{ cmake_flags }}"
   args:
     chdir: "{{ arrow_workdir }}/{{ arrow_dest }}"
   register: arrow_cmake_generate
@@ -129,9 +139,9 @@
     - skip_ansible_lint
 
 - name: Build arrow cmake
-  environment:
-    PATH: '/sbin:/usr/sbin:/usr/local/sbin:/usr/local/bin:/bin:/usr/bin'
-  shell: "{{ cmd_env | default('') }} cmake --build build"
+  shell:
+    executable: /bin/bash
+    cmd: "source /etc/profile && {{ cmd_env | default('') }} cmake --build build -j{{ ansible_processor_vcpus }}"
   args:
     chdir: "{{ arrow_workdir }}/{{ arrow_dest }}"
   register: arrow_cmake_build
@@ -141,12 +151,17 @@
     - skip_ansible_lint
 
 - name: Install arrow cmake
-  environment:
-    PATH: '/sbin:/usr/sbin:/usr/local/sbin:/usr/local/bin:/bin:/usr/bin'
-  shell: "{{ cmd_env | default('') }} cmake --install build --prefix {{ arrow_prefix }}"
+  shell: "source /etc/profile && {{ cmd_env | default('') }} cmake --install build --prefix {{ arrow_prefix }}"
   args:
     chdir: "{{ arrow_workdir }}/{{ arrow_dest }}"
   register: arrow_cmake_install
+  tags:
+    - base_arrow
+    - arrow
+    - skip_ansible_lint
+
+- name: Clean arrow sources
+  shell: "rm -rf {{ arrow_workdir }}"
   tags:
     - base_arrow
     - arrow

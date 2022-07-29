@@ -1,5 +1,4 @@
 ---
-# yamllint disable rule:line-length
 # arrow_prefix used for zlib and bzip2 too
 arrow_prefix: /usr/local
 arrow_workdir: /usr/local/src

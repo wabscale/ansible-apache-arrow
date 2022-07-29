@@ -2,7 +2,7 @@
 arrow_version: 8.0.1
 
 toolset: gcc
-cmake_generator: Ninja
+cmake_generator: "Unix Makefiles"
 cmake_flags:
   -DARROW_PARQUET=ON
   -DARROW_CSV=ON
