@@ -21,7 +21,7 @@
 
 - name: Remove previous arrow cmake
   win_shell: "cmd.exe /c DEL /F /Q /S {{ arrow_workdir }}/{{ arrow_dest }}/build"
-  when: build_path.stat.isdir
+  when: build_path.stat.exists
   tags:
     - base_arrow
     - arrow
