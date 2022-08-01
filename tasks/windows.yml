@@ -1,5 +1,12 @@
 ---
 
+- name: Display configuration
+  debug:
+    msg: >
+      toolset: {{ toolset }}
+      arrow_cmake_generator: {{ arrow_cmake_generator }}
+      arrow_cmake_arch: {{ arrow_cmake_arch }}
+
 - name: Create work directories
   win_file:
     path: "{{ item }}"
@@ -8,37 +15,60 @@
     - "{{ arrow_prefix }}"
     - "{{ arrow_workdir }}"
 
-- name: Download arrow
-  git:
-    repo: "{{ arrow_url }}"
-    dest: "{{ arrow_workdir }}/{{ arrow_dest }}"
-    version: "apache-arrow-{{ arrow_version }}"
-    clone: true
-    depth: 1
+- win_stat: "path={{ arrow_workdir }}/{{ arrow_dest }}"
+  register: repo_path
 
-- stat: "path={{ arrow_workdir }}/{{ arrow_dest }}/build"
+- name: Remove previous arrow cmake
+  win_shell: "Remove-Item -Recurse -Force {{ arrow_workdir }}/{{ arrow_dest }}"
+  when: repo_path.stat.exists
+  tags:
+    - base_arrow
+    - arrow
+    - skip_ansible_lint
+
+- name: Download arrow
+  win_command: "\"C:/Program Files/Git/bin/git.exe\" clone --branch apache-arrow-{{ arrow_version }} --depth 1 {{ arrow_url }} {{ arrow_workdir }}/{{ arrow_dest }}"
+
+- win_stat: "path={{ arrow_workdir }}/{{ arrow_dest }}/build"
   register: build_path
 
 - name: Remove previous arrow cmake
-  win_shell: "cmd.exe /c DEL /F /Q /S {{ arrow_workdir }}/{{ arrow_dest }}/build"
+  win_shell: "Remove-Item -Recurse -Force {{ arrow_workdir }}/{{ arrow_dest }}/build"
   when: build_path.stat.exists
   tags:
     - base_arrow
     - arrow
     - skip_ansible_lint
 
-- name: Generate arrow cmake
-  win_shell: "cmd.exe /c cmake -B build -S {{ arrow_workdir }}/{{ arrow_dest }}/cpp -G \"{{ arrow_cmake_generator }}\" -A \"{{ arrow_cmake_arch }}\" -T \"{{ toolset }}\" {{ arrow_cmake_flags }}"
-  args:
-    chdir: "{{ arrow_workdir }}/{{ arrow_dest }}"
-  register: arrow_cmake_generate
-  tags:
-    - base_arrow
-    - arrow
-    - skip_ansible_lint
+- set_fact:
+    vs_vars_dir: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Auxiliary\\Build"
+  when: vs_vars_dir is undefined
 
-- name: Build arrow cmake
-  win_shell: "cmd.exe /c cmake --build build -j{{ ansible_processor_vcpus }}"
+- block:
+    - set_fact:
+        vs_toolset: "v140"
+        cmd_env: "\"{{ vs_vars_dir }}\\vcvars{{ arrow_cmake_arch }}.bat\" -vcvars_ver=14.0"
+      when: target_toolset == "msvc-14.0"
+    - set_fact:
+        vs_toolset: "v141"
+        cmd_env: "\"{{ vs_vars_dir }}\\vcvars{{ arrow_cmake_arch }}.bat\" -vcvars_ver=14.1"
+      when: target_toolset == "msvc-14.1"
+    - set_fact:
+        vs_toolset: "v142"
+        cmd_env: "\"{{ vs_vars_dir }}\\vcvars{{ arrow_cmake_arch }}.bat\" -vcvars_ver=14.2"
+      when: target_toolset == "msvc-14.2"
+    - set_fact:
+        vs_toolset: "v143"
+        cmd_env: "\"{{ vs_vars_dir }}\\vcvars{{ arrow_cmake_arch }}.bat\" -vcvars_ver=14.3"
+      when: target_toolset == "msvc-14.3"
+
+- name: Generate cmake generate batch script
+  win_template:
+    src: build.bat.j2
+    dest: "{{ arrow_workdir }}/{{ arrow_dest }}/build.bat"
+
+- name: Run arrow build script
+  win_command: "{{ arrow_workdir }}/{{ arrow_dest }}/build.bat"
   args:
     chdir: "{{ arrow_workdir }}/{{ arrow_dest }}"
   register: arrow_cmake_build
@@ -47,18 +77,8 @@
     - arrow
     - skip_ansible_lint
 
-- name: Install arrow cmake
-  win_shell: "cmd.exe /c cmake --install build --prefix {{ arrow_prefix }}"
-  args:
-    chdir: "{{ arrow_workdir }}/{{ arrow_dest }}"
-  register: arrow_cmake_install
-  tags:
-    - base_arrow
-    - arrow
-    - skip_ansible_lint
-
 - name: Clean arrow sources
-  shell: "rm -rf {{ arrow_workdir }}"
+  win_shell: "Remove-Item -Recurse -Force {{ arrow_workdir }}"
   tags:
     - base_arrow
     - arrow
