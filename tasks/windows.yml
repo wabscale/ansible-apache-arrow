@@ -28,7 +28,7 @@
     - skip_ansible_lint
 
 - name: Generate arrow cmake
-  win_shell: "cmd.exe /c cmake -B build -S {{ arrow_workdir }}/{{ arrow_dest }}/cpp -G \"{{ cmake_generator }}\" -A \"{{ cmake_arch }}\" -T \"{{ toolset }}\" {{ cmake_flags }}"
+  win_shell: "cmd.exe /c cmake -B build -S {{ arrow_workdir }}/{{ arrow_dest }}/cpp -G \"{{ arrow_cmake_generator }}\" -A \"{{ arrow_cmake_arch }}\" -T \"{{ toolset }}\" {{ arrow_cmake_flags }}"
   args:
     chdir: "{{ arrow_workdir }}/{{ arrow_dest }}"
   register: arrow_cmake_generate

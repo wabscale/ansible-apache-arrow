@@ -56,7 +56,7 @@
   block:
     - name: When not sourcing devtoolset enable file
       set_fact:
-        cmd_env: "CC=gcc CXX=g++ "
+        cmd_env: "source /etc/profile && env CC=gcc CXX=g++ "
 
     - name: Source devtoolset enable file
       when:
@@ -65,7 +65,7 @@
         - ansible_distribution_major_version|int < 8
         - toolset == 'gcc'
       set_fact:
-        cmd_env: "source /opt/rh/{{ cplusplus_devtoolset }}/enable && CC=gcc CXX=g++ "
+        cmd_env: "source /etc/profile && source /opt/rh/{{ cplusplus_devtoolset }}/enable && env CC=gcc CXX=g++ "
 
     - name: Source llvm toolset enable file
       when:
@@ -74,7 +74,7 @@
         - ansible_distribution_major_version|int < 8
         - toolset == 'clang'
       set_fact:
-        cmd_env: "source /opt/rh/{{ llvm_toolset }}/enable && CC=clang CXX=clang++ "
+        cmd_env: "source /etc/profile && source /opt/rh/{{ llvm_toolset }}/enable && env CC=clang CXX=clang++ "
   when: cmd_env is undefined
 
 - name: What is my gcc compiler?
@@ -129,7 +129,7 @@
 - name: Generate arrow cmake
   shell:
     executable: /bin/bash
-    cmd: "source /etc/profile && {{ cmd_env | default('') }} cmake -B build -S {{ arrow_workdir }}/{{ arrow_dest }}/cpp -G \"{{ cmake_generator }}\" {{ cmake_flags }}"
+    cmd: "{{ cmd_env | default('') }} cmake -B build -S {{ arrow_workdir }}/{{ arrow_dest }}/cpp -G \"{{ arrow_cmake_generator }}\" {{ arrow_cmake_flags }}"
   args:
     chdir: "{{ arrow_workdir }}/{{ arrow_dest }}"
   register: arrow_cmake_generate
