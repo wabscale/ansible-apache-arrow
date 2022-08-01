@@ -129,7 +129,7 @@
 - name: Generate arrow cmake
   shell:
     executable: /bin/bash
-    cmd: "{{ cmd_env | default('') }} cmake -B build -S {{ arrow_workdir }}/{{ arrow_dest }}/cpp -G \"{{ arrow_cmake_generator }}\" {{ arrow_cmake_flags }}"
+    cmd: "source /etc/profile && {{ cmd_env | default('') }} cmake -B build -S {{ arrow_workdir }}/{{ arrow_dest }}/cpp -G \"{{ arrow_cmake_generator }}\" {{ arrow_cmake_flags }}"
   args:
     chdir: "{{ arrow_workdir }}/{{ arrow_dest }}"
   register: arrow_cmake_generate
@@ -151,7 +151,9 @@
     - skip_ansible_lint
 
 - name: Install arrow cmake
-  shell: "source /etc/profile && {{ cmd_env | default('') }} cmake --install build --prefix {{ arrow_prefix }}"
+  shell:
+    executable: /bin/bash
+    cmd: "source /etc/profile && {{ cmd_env | default('') }} cmake --install build --prefix {{ arrow_prefix }}"
   args:
     chdir: "{{ arrow_workdir }}/{{ arrow_dest }}"
   register: arrow_cmake_install
