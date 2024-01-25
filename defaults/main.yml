@@ -1,6 +1,8 @@
 ---
 arrow_version: 8.0.1
 
+arrow_build_jobs: "{{ ansible_processor_vcpus | default('1') }}"
+
 toolset: gcc
 arrow_cmake_generator: "Unix Makefiles"
 arrow_cmake_flags:

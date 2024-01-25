@@ -141,7 +141,7 @@
 - name: Build arrow cmake
   shell:
     executable: /bin/bash
-    cmd: "source /etc/profile && {{ cmd_env | default('') }} cmake --build build -j{{ ansible_processor_vcpus }}"
+    cmd: "source /etc/profile && {{ cmd_env | default('') }} cmake --build build -j{{ arrow_build_jobs }}"
   args:
     chdir: "{{ arrow_workdir }}/{{ arrow_dest }}"
   register: arrow_cmake_build
